@@ -13,6 +13,7 @@ import streamlit as st
 from enum import Enum
 from pygame import mixer
 # from add_new_tool import *
+from audio.zijie_tts import tts
 from audio.ali_stt import lingji_stt_st
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 
@@ -23,14 +24,13 @@ DEFAULT_SYSTEM_PROMPT = '''
 class Mode(str, Enum):
     CHAT, TOOL, CI = '💬 Chat', '🛠️ Tool', '🧑‍💻 Code Interpreter'
 
-class Consumer(threading.Thread):
+class TextConsumer(threading.Thread):
     def __init__(self, queue_text:queue.Queue, daemon=True):
+        '''
+        消耗文字队列中的元素的类实现。
+        '''
         super().__init__(daemon=daemon)
         self.queue_text = queue_text
-        self.key,self.token = load_tts_config()
-    
-    def generate_random_filename(self, length=10, extension=".txt"):
-        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length)) + extension
 
     def run(self):
         while True:
@@ -38,30 +38,16 @@ class Consumer(threading.Thread):
             if text is None:
                 break
             
-            self.audio = tts(text, self.key, self.token)
-            
-            # Download the MP3 file
-            filename = self.generate_random_filename(length=10,extension=".wav")
-            response = requests.get(self.audio)
-            
-            with open(filename, 'wb') as f:
-                f.write(response.content)
+            self.audio = tts(text)
             
             mixer.init()
-            mixer.music.load(filename)
+            mixer.music.load(self.audio)
             mixer.music.play()
             while mixer.music.get_busy():
                 time.sleep(0.001)
             
-            os.remove(filename)
+            os.remove(self.audio)
             self.queue_text.task_done()
-
-def load_tts_config():
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-    key = config['aliyun']['key']
-    token = config['aliyun']['token']
-    return key,token
 
 def web():
     st.set_page_config(
@@ -104,11 +90,6 @@ def web():
             value=DEFAULT_SYSTEM_PROMPT,
         )
 
-        prompt_text = st.chat_input(
-            'Chat with ChatGLM3!',
-            key='chat_input',
-        )
-
     tab = st.radio(
         'Mode',
         [mode.value for mode in Mode],
@@ -119,8 +100,23 @@ def web():
     if clear_history or retry:
         prompt_text = ""
 
+    prompt_text = st.chat_input('Chat with me!', key='chat_input')
+
     match tab:
         case Mode.CHAT:
+            prompt_text_from_audio = lingji_stt_st()
+
+            if not prompt_text:                       # 如果没有从文本输入框输入
+                prompt_text = prompt_text_from_audio
+            
+            if "tts_thread" not in st.session_state:  # 如果没有开启语音合成功能
+                if 'queue_text' not in st.session_state:
+                    st.session_state.queue_text = queue.Queue()
+                c = TextConsumer(queue_text=st.session_state.queue_text)
+                c = add_script_run_ctx(c)
+                st.session_state.tts_thread = c
+                st.session_state.tts_thread.start()
+
             demo_chat.main(
                 retry=retry,
                 top_p=top_p,
@@ -128,7 +124,8 @@ def web():
                 prompt_text=prompt_text,
                 system_prompt=system_prompt,
                 repetition_penalty=repetition_penalty,
-                max_new_tokens=max_new_token
+                max_new_tokens=max_new_token,
+                Q = st.session_state.queue_text,
             )
         # case Mode.TOOL:
         #     demo_tool.main(
@@ -151,6 +148,7 @@ def web():
         case _:
             st.error(f'Unexpected tab: {tab}')
 
-
+if __name__ == "__main__":
+    web()
 
 

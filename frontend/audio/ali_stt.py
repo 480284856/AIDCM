@@ -5,9 +5,10 @@ import dashscope
 import streamlit as st
 
 from threading import Timer
-from streamlit.runtime.scriptrunner import add_script_run_ctx
 from streamlit.elements.widgets.button import *
+from streamlit.delta_generator import DeltaGenerator
 from streamlit.elements.widgets.button import ButtonMixin
+from streamlit.runtime.scriptrunner import add_script_run_ctx
 from dashscope.common.error import InvalidParameter,InvalidTask
 from dashscope.audio.asr.recognition import Recognition,RecognitionCallback,RecognitionResult
 
@@ -25,7 +26,7 @@ def button(
     type: Literal["primary", "secondary"] = "secondary",
     disabled: bool = False,
     use_container_width: bool = False,
-    fix_to_bottom: bool = False,
+    fix_to_buttom: bool = False,
 ) -> bool:
     r"""Display a button widget.
 
@@ -123,7 +124,7 @@ def button(
         type=type,
         use_container_width=use_container_width,
         ctx=ctx,
-        fix_to_bottom=fix_to_bottom
+        fix_to_buttom=fix_to_buttom
     )
 
 def _button(
@@ -140,7 +141,7 @@ def _button(
         disabled: bool = False,
         use_container_width: bool = False,
         ctx: ScriptRunContext | None = None,
-        fix_to_bottom: bool = False,
+        fix_to_buttom: bool = False,
     ) -> bool:
         key = to_key(key)
 
@@ -213,7 +214,7 @@ def _button(
         if ctx:
             save_for_app_testing(ctx, id, button_state.value)
         
-        if fix_to_bottom:
+        if fix_to_buttom:
             from streamlit import _bottom
             _bottom._enqueue("button", button_proto)
         else:
@@ -222,7 +223,7 @@ def _button(
         return button_state.value
 
 ButtonMixin.button = button
-BufferError._button = _button
+ButtonMixin._button = _button
 
 # 回调函数，在某个条件下会调用其成员函数
 class Callback(RecognitionCallback):
@@ -394,3 +395,7 @@ def mystt():
                 except:
                     pass  # 忽略错误
         time.sleep(0.01)  # 每次循环后等待100毫秒，防止CPU占用过高  
+
+if __name__ == "__main__":
+    dg = DeltaGenerator()
+    ButtonMixin.button(dg, "🎤", fix_to_buttom=True)

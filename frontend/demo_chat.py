@@ -4,7 +4,6 @@ import requests
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-from client import get_client
 from conversation import postprocess_text, preprocess_text, Conversation, Role
 
 def remote_call(
@@ -134,9 +133,10 @@ def main(
             if response['token'] in ',.?!;，。？！；':
                 Q.put(part_of_output)
                 part_of_output = ''
-        return output_text
 
         append_conversation(Conversation(
             Role.ASSISTANT,
             postprocess_text(output_text),
         ), history, markdown_placeholder)
+    
+        return output_text

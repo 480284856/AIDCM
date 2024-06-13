@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import socket
 import asyncio
 import uvicorn
 import requests
@@ -71,21 +72,38 @@ async def his_clean(request: Request):
     else:
         pass
 
+def get_unused_port():
+    """
+    Finds and returns an unused port number on the local machine.
+    """
+    # Create a new socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    # Bind the socket to address 0.0.0.0 with port 0, which tells the OS to find an available port
+    s.bind(('0.0.0.0', 0))
+    
+    # Get the port number that was assigned
+    unused_port = s.getsockname()[1]
+    
+    # Close the socket
+    s.close()
+    
+    return unused_port
+
 if __name__ == "__main__":
     client = get_client()
     HISTORY:dict[list[Conversation]] = {}
     OUTPUT_TEXT = ""
     SYS_PROMPT = ""
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=get_unused_port())
 
     # 示例用法
     """
-    curl -X POST "http://localhost:8000/generate-stream" -H "Content-Type: application/json" -d '{
-        "query": "您好！",
-        "params": {
+    curl -X POST "http://localhost:8000/generate-stream" -H "Content-Type: application/json" -d "{
+        'query': "您好！",
+        'params': {
             "max_length": 100,
         }
-        }
-    }
+    }"
     """
