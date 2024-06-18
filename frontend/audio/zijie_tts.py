@@ -18,11 +18,11 @@ def tts(
         text
 ):
     # 填写平台申请的appid, access_token以及cluster
-    appid = "6748842434"
-    access_token= "_A4gWahq_z7PLM6IdebxT1Ot1AncZA-A"
+    appid = "3400210889"
+    access_token= "bofQneJofrHGoiiNGGEV7rdyPUqkw7gp"
     cluster = "volcano_tts"
 
-    voice_type = "BV213_streaming"
+    voice_type = "BV002_streaming"
     host = "openspeech.bytedance.com"
     api_url = f"https://{host}/api/v1/tts"
 
@@ -66,7 +66,9 @@ def tts(
     except Exception as e:
         e.with_traceback()
     
-    return file_to_save
+    # return file_to_save
+
+
 
 if __name__ == '__main__':
     tts("你好，这是一个测试")
