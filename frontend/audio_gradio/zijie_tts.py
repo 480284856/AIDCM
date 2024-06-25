@@ -2,7 +2,6 @@ import os
 import uuid
 import json
 import time
-import mixer
 import base64
 import random
 import string
@@ -116,6 +115,7 @@ class AudioConsumer(threading.Thread):
             while mixer.music.get_busy():
                 time.sleep(0.001)
             
+            mixer.music.unload()
             os.remove(audio)
         mixer.quit()
 

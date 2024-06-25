@@ -5,7 +5,7 @@ import logging
 import datetime
 import speech_recognition as sr
 
-from ali_stt import Recognition,Callback
+from ali_stt import Recognition,Callback,lingji_stt_gradio
 from speech_recognition import AudioData
 
 def get_logger():
@@ -41,7 +41,13 @@ def save_audio_file(audio:AudioData, sample_rate=16000):
 def recognize_speech(audio_path, recognizer:Recognition) ->str:
     return recognizer.call(audio_path).get_sentence()[0]['text']
 
-def lingji_stt_gradio_voice_awake():
+def lingji_stt_gradio_voice_awake(input_box):
+    '''
+    语音唤醒模块
+    ---
+
+    input_box: modelscope_studio的MultimodalInput
+    '''
     recognizer = sr.Recognizer()
     logger = get_logger()
 
@@ -57,15 +63,24 @@ def lingji_stt_gradio_voice_awake():
         
         while True:
             try:
+                # 一直监听语音
                 logger.info("Listening for wake word 'hei siri'...")
-                audio = recognizer.listen(source)            # 监听麦克风
+                audio = recognizer.listen(source)               # 监听麦克风
                 logger.info("Recognizing done.")
                 audio_path = save_audio_file(audio)
                 result = recognize_speech(audio_path, recognizer=recognition)
                 os.remove(audio_path)
                 logger.info(f"Recognized: {result}")
+
+                # 当用户说出特定唤醒词时
                 if "siri" in result:
                     logger.info("Wake word detected!")
+
+                    # TODO: 给出固定的欢迎回复
+
+                    # 开始录音
+                    input_box = lingji_stt_gradio(input_box)
+                    
                     break
             except sr.UnknownValueError:
                 continue
