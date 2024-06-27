@@ -61,11 +61,6 @@ class Callback(RecognitionCallback):
 
         print("RecognitionCallback on_complete：", transform_res.get_sentence())
 
-class CallbackVoiceAwake(Callback):
-    def on_complete(self) -> None:
-        global recognition_active,transform_res
-
-        recognition_active = False  # 识别结束，将标志设置为False，这样主线程就可以关闭录音实例了。
 
 class AudioRecognitionThread(threading.Thread):
     def __init__(self):
@@ -85,10 +80,8 @@ class AudioRecognitionThread(threading.Thread):
 
         while recognition_active:
             try:
-                
                 data = stream.read(3200, exception_on_overflow=False)
                 recognition.send_audio_frame(data)
-                print("stream 长度", len(recognition._stream_data))
             except Exception as e:
                 # print(e)
                 pass
@@ -128,38 +121,6 @@ def lingji_stt_gradio(inputs) -> str:
     
         return transform_res.get_sentence()['text']
 
-def lingji_stt_gradio_va() -> str:
-    '''
-    拥有语音唤醒功能的实时文本转语音函数
-    '''
-    global recognition, recognition_active, stream, stt_thread,transform_res
-
-    # 麦克风准备
-    Recognition.SILENCE_TIMEOUT_S = 200      
-    kwargs = {REQUEST_TIMEOUT_KEYWORD: 120}
-    recognition= Recognition(
-        model="paraformer-realtime-v1",   # 语音识别模型
-        format='pcm',                     # 音频格式
-        sample_rate=16000,                # 指定音频的采样率，16000表示每秒采样16000次。
-        callback=CallbackVoiceAwake(),
-        **kwargs
-        )
-    recognition.start()
-
-    # 使用麦克风进行录音
-    while not stream:                     # 等待stream,麦克风等设备初始化好,再进行语音识别.
-        continue
-    stt_thread = AudioRecognitionThread() # 发送语音帧的线程
-    recognition_active = True             # 可以进行录音了
-    stt_thread.start()                    # 开始识音
-
-    # 关闭录音实例
-    while recognition_active:             # 等待Callback的on_complete回调函数把recognition_active设置为False
-        time.sleep(0.01)
-    recognition.stop()                    # 停止语音识别
-    stt_thread.join()                     # 此时stt线程应该是要结束运行的.
-
-    return transform_res.get_sentence()['text']
 
 if __name__ == "__main__":
     lingji_stt_gradio(None)

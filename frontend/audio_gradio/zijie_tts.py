@@ -61,7 +61,7 @@ def tts(
 
     try:
         resp = requests.post(api_url, json.dumps(request_json), headers=header)
-        print(f"resp body: \n{resp.json()}")
+        # print(f"resp body: \n{resp.json()}")
         if "data" in resp.json():
             data = resp.json()["data"]
             file_to_save = generate_random_filename(extension=".mp3")
