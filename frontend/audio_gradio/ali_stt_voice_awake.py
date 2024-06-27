@@ -29,17 +29,31 @@ class Recognition(Recognition):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
-    def __receive_worker(self):
+    def _Recognition__receive_worker(self):
         """Asynchronously, initiate a real-time speech recognition request and
            obtain the result for parsing.
         """
-        responses = self.__launch_request()
+        responses = self._Recognition__launch_request()
         for part in responses:
             if part.status_code == HTTPStatus.OK:
                 is_output_empty = len(part.output)==0
                 is_sentence_end = RecognitionResponse.is_sentence_end(part.output['sentence']) if 'sentence' in part.output else False
                 
                 if is_output_empty or is_sentence_end:
+                    if is_sentence_end:
+                        usage: Dict[str, Any] = None
+                        useags: List[Any] = None
+                        if 'sentence' in part.output and part.usage is not None:
+                            usage = {
+                                'end_time': part.output['sentence']['end_time'],
+                                'usage': part.usage
+                            }
+                            useags = [usage]
+
+                        self._callback.on_event(
+                            RecognitionResult(
+                                RecognitionResponse.from_api_response(part),
+                                usages=useags))
                     self._callback.on_complete()
                 else:
                     usage: Dict[str, Any] = None
@@ -128,15 +142,13 @@ class AudioRecognitionThread(threading.Thread):
 
         while recognition_active:
             try:
-                
                 data = stream.read(3200, exception_on_overflow=False)
                 recognition.send_audio_frame(data)
-                print("stream 长度", len(recognition._stream_data))
             except Exception as e:
-                # print(e)
+                print(e)
                 pass
             time.sleep(0.01)  # 控制循环频率，减少CPU占用
-        logging.log(level=logging.INFO, msg="Thread of stt is finished...")
+        logging.log(level=logging.INFO, msg="语音帧发送线程已结束...")
 
 def lingji_stt_gradio_va() -> str:
     '''
@@ -166,8 +178,9 @@ def lingji_stt_gradio_va() -> str:
     # 关闭录音实例
     while recognition_active:             # 等待Callback的on_complete回调函数把recognition_active设置为False
         time.sleep(0.01)
-    recognition.stop()                    # 停止语音识别
     stt_thread.join()                     # 此时stt线程应该是要结束运行的.
+    recognition.stop()                    # 停止语音识别
+    recognition = None
 
     return transform_res.get_sentence()['text']
 
