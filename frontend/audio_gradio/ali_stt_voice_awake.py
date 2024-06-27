@@ -185,4 +185,4 @@ def lingji_stt_gradio_va() -> str:
     return transform_res.get_sentence()['text']
 
 if __name__ == "__main__":
-    lingji_stt_gradio(None)
+    lingji_stt_gradio_va()
